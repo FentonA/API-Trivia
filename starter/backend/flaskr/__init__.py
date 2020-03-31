@@ -8,7 +8,7 @@ from models import setup_db, Question, Category
 
 QUESTIONS_PER_PAGE = 10
 
-def paginnate_questions(request, selection):
+def paginate_questions(request, selection):
     page = request.args.get('page', 1, type=int)
     start = (page -1 ) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
@@ -47,7 +47,7 @@ def create_app(test_config=None):
 #   @cross_origin()
   def get_categories():
     selection = Category.query.order_by(Category.id).all()
-    current_categories = paginnate_questions(request, selection)
+    current_categories = paginate_questions(request, selection)
 
     return({
       'success': True,
@@ -74,16 +74,16 @@ def create_app(test_config=None):
   @app.route('/questions')
   def retreive_questions():
     selection = Question.query.order_by(Question.id).all()
-    current_questions = paginnate_questions(request, selection)
+    current_questions = paginate_questions(request, selection)
 
-    # if len(current_questions) == 0:
-    #   abort(404)
+    if len(current_questions) == 0:
+      abort(404)
 
       
     return({
       'success': True,
-      'Questions': current_questions,
-      'Total Questions': len(Question.query.all())
+      'questions': current_questions,
+      'total_questions': len(Question.query.all())
     })
   '''
   @TODO: 
