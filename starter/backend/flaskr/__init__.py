@@ -19,6 +19,7 @@ def paginate_questions(request, selection):
 
 	return current_questions
 
+
 def create_app(test_config=None):
 	# create and configure the app
 	app = Flask(__name__, instance_relative_config=True)
@@ -47,13 +48,16 @@ def create_app(test_config=None):
 	'''
 	@app.route('/categories', methods=['GET'])
 	def get_categories():
-		selection = Category.query.order_by(Category.id).all()
-		current_categories = paginate_questions(request, selection)
+		categories = Category.query.all()
+		categories_dict = {}
+		for category in categories:
+			categories_dict[category.id] = category.type
+		if (len(categories_dict) == 0):
+			abort(404)
 
 		return({
       		'success': True,
-			'Questions': current_categories,
-			'Category': len(Category.query.all())
+			'categories' : categories_dict
 			})
 	'''
 	@TODO:
@@ -160,7 +164,8 @@ def create_app(test_config=None):
 	@app.route('/questions/search', methods=['POST', 'GET'])
 	def search_questions():
 		try:
-			searched_question=Question.query.filter(Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
+			searched_question = Question.query.filter(
+			    Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
 			formatted_questions = [question.format() for question in searched_question]
 
 			return jsonify({
@@ -184,13 +189,12 @@ def create_app(test_config=None):
 	'''
 	@app.route('/categories/<int:categories_id>/questions', methods=['GET'])
 	def get_category_questions(categories_id):
-
 		try:
 			categories = Category.query.all()
 
 			formatted_categories = [c.format() for c in categories]
 
-			questions = Question.query.filter_by(category = str(categories_id)).all()
+			questions = Question.query.filter_by(category=str(categories_id)).all()
 
 			formatted_questions = [q.format() for q in questions]
 			print("LOG formatted questions", formatted_questions)
@@ -204,7 +208,7 @@ def create_app(test_config=None):
 				'questions': current_questions,
 				'total_questions': len(questions),
 				'current_category': current_category,
-				'categories':formatted_categories
+				'categories': formatted_categories
 				})
 		except:
 			abort(422)
@@ -223,30 +227,30 @@ def create_app(test_config=None):
 
 	@app.route('/quiz', methods=['POST'])
 	def play_quiz():
-    '''
-    Returns a single question from the database
-    Filters the questions already sent to the client
-    '''
+		'''
+		Returns a single question from the database
+		Filters the questions already sent to the client
+		'''
 		try:
-		data = request.get_json()
-		# check given category
-		category_id = int(data["quiz_category"]["id"])
-		category = Category.query.get(category_id)
-		previous_questions = data["previous_questions"]
+			data = request.get_json()
+			# check given category
+			category_id = int(data["quiz_category"]["id"])
+			category = Category.query.get(category_id)
+			previous_questions = data["previous_questions"]
 			if not category == None:  
 				if "previous_questions" in data and len(previous_questions) > 0:
-				questions = Question.query.filter(
+					questions = Question.query.filter(
 					Question.id.notin_(previous_questions),
 					Question.category == category.id
 					).all()  
 				else:
-				questions = Question.query.filter(Question.category == category.id).all()
+					questions = Question.query.filter(Question.category == category.id).all()
 			else:
 				if "previous_questions" in data and len(previous_questions) > 0:
-				questions = Question.query.filter(Question.id.notin_(previous_questions)).all()  
+					questions = Question.query.filter(Question.id.notin_(previous_questions)).all()  
 				else:
-				questions = Question.query.all()
-			max = len(questions) - 1
+					questions = Question.query.all()
+					max = len(questions) - 1
 			if max > 0:
 				question = questions[random.randint(0, max)].format()
 			else:
@@ -256,7 +260,7 @@ def create_app(test_config=None):
 				"question": question
 			})
 		except:
-		abort(500, "An error occured while trying to load the next question")
+			abort(500, "An error occured while trying to load the next question")
 
 
 	'''
@@ -288,4 +292,5 @@ def create_app(test_config=None):
 				"message": "Bad request"
 			}), 400
 
+	
 	return app
