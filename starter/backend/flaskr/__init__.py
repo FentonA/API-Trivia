@@ -72,7 +72,7 @@ def create_app(test_config=None):
 	ten questions per page and pagination at the bottom of the screen for three pages.
 	Clicking on the page numbers should update the questions.
 	'''
-	@app.route('/questions')
+	@app.route('/questions/')
 	def retreive_questions():
 		selection = Question.query.order_by(Question.id).all()
 		current_questions = paginate_questions(request, selection)
@@ -83,7 +83,9 @@ def create_app(test_config=None):
 		return({
     		'success': True,
 			'questions': current_questions,
-			'total_questions': len(Question.query.all())
+			'categories': None,
+			'totalQuestions': len(Question.query.all()),
+			'currentCateogry': None
 				})
 	'''
 	@TODO:
