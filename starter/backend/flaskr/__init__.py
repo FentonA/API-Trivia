@@ -31,7 +31,6 @@ def create_app(test_config=None):
 		response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
 		return response
 
-	#Pagination function*
 
 	'''
 	@TODO:
@@ -90,20 +89,16 @@ def create_app(test_config=None):
 	@app.route('/questions/<int:questions_id>', methods=['DELETE'])
 	def delete_questions(questions_id):
 		try:
-			question = Question.query.order_by(Questions.id).one_or_none()
-
-			if questions == None:
+			del_questions = Question.query.filter(Questions.id).one_or_none()
+			del_questions.delete()
+			if del_questions is None:
 				abort(404)
-
-			questions.delete()
-			selection = Question.query.order_by(Question.id).all()
-			current_questions = paginate_questions(request, selection)
-
+			
+			questions = Question.query.all()
 			return jasonify({
       			'success': True,
-				'deleted': book_id,
-				'questions': current_questions,
-				'total_questions': len(Question.query.all())
+				'deleted': del_questions,
+				'questions': questions
 			})
 		except:
 			abort(422)
@@ -120,30 +115,35 @@ def create_app(test_config=None):
 
 	@app.route('/questions/add', methods=['POST'])
 	def update_questions():
-		data = {
-			'questions': request.get_json()['questions'],
-			'answers': request.get_json()['answers'],
-			'category':  request.get_json()['category'],
-			'difficulty': request.get_json()['difficulty']
-		}
-
 		try:
-			question = Question(**data)
+			#paginate
+			page = request.args.get('page', 1, type=int)
+			start = (page  -1 ) * 10
+			end = start + 10
 
-			question.insert()
+			req_json = request.json()
+			
+			new_questions = Question(
+				answer = req_json['answer'],
+				category = req_json['category'],
+				difficulty = req_json['difficulty'],
+				question = req_json['question']
+			)
+			new_questions.insert()
+			question = Question.query.all()
+			created_questions = [question.format() for new_questions in question]
 
-			selection = Question.query.order_by(Question.id), all()
-			current_questions = paginate_questions(request, selection)
 
 			return jsonify({
 				'success': True,
 				'created': questions.id,
-				'questions': current_questions,
-				'total questions': len(Question.query.all())
+				'questions': created_questions[start:end],
+				'total_questions': len(created_questions)
 				})
 
 		except:
 			abort(422)
+
 	'''
 	@TODO:
 	Create a POST endpoint to get questions based on a search term.
@@ -156,17 +156,22 @@ def create_app(test_config=None):
 	@app.route('/questions/search', methods=['POST', 'GET'])
 	def search_questions():
 		try:
+			#paginate
+			page = request.args.get('page', 1, type=int)
+			start = (page  -1 ) * 10
+			end = start + 10
+
 			searched_question = Question.query.filter(
 			    Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
 			formatted_questions = [question.format() for question in searched_question]
 
 			return jsonify({
 				'success': True,
-				'total questions': len(formatted_questions)
+				'question': formattd_questions[start:end],
+				'total_questions': len(formatted_questions)
 			})
 
-			selection = Question.query.order_by(question.id).all()
-			current_questions = paginate_questions(request, selection)
+
 
 		except:
 			abort(404)
@@ -215,7 +220,7 @@ def create_app(test_config=None):
 	and shown whether they were correct or not.
 	'''
 
-	@app.route('/quiz', methods=['POST'])
+	@app.route('/play', methods=['POST'])
 	def play_quiz():
 		'''
 		Returns a single question from the database
