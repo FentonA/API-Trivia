@@ -97,7 +97,7 @@ def create_app(test_config=None):
 			questions = Question.query.all()
 			return jasonify({
       			'success': True,
-				'deleted': del_questions,
+				'deleted': questions_id,
 				'questions': questions
 			})
 		except:
@@ -113,8 +113,8 @@ def create_app(test_config=None):
 	of the questions list in the "List" tab.
 	'''
 
-	@app.route('/questions/add', methods=['POST'])
-	def update_questions():
+	@app.route('/questions', methods=['POST'])
+	def update_questions_list():
 		try:
 			#paginate
 			page = request.args.get('page', 1, type=int)
@@ -161,8 +161,7 @@ def create_app(test_config=None):
 			start = (page  -1 ) * 10
 			end = start + 10
 
-			searched_question = Question.query.filter(
-			    Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
+			searched_question = Question.query.filter(Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
 			formatted_questions = [question.format() for question in searched_question]
 
 			return jsonify({
@@ -220,7 +219,7 @@ def create_app(test_config=None):
 	and shown whether they were correct or not.
 	'''
 
-	@app.route('/play', methods=['POST'])
+	@app.route('/quiz', methods=['POST'])
 	def play_quiz():
 		'''
 		Returns a single question from the database

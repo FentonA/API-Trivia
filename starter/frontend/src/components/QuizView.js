@@ -48,7 +48,7 @@ class QuizView extends Component {
     if(this.state.currentQuestion.id) { previousQuestions.push(this.state.currentQuestion.id) }
 
     $.ajax({
-      url: 'http://localhost:5000/play', //TODO: update request URL
+      url: 'http://localhost:5000/quiz', //TODO: update request URL
       type: "POST",
       dataType: 'json',
       contentType: 'application/json',
