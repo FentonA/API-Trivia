@@ -39,15 +39,12 @@ def create_app(test_config=None):
 	'''
 	@app.route('/categories', methods=['GET'])
 	def get_categories():
-		page = request.args.get('page', 1, type=int)
-		start = (page -1) * 10
-		end = start + 10
-		categories = Category.query.all()
-		categories_dict = { category.id:category.type for category in categories }
+		all_categories = {}
+		for category in Category.query.all():
+			all_categories[category.id] = category.type
 		return jsonify({
       		'success': True,
-			'categories' : categories_dict,
-			'total_categories': len(categories_dict)
+			'categories' : all_categories
 			})
 	'''
 	@TODO:
@@ -88,20 +85,20 @@ def create_app(test_config=None):
 
 	@app.route('/questions/<int:questions_id>', methods=['DELETE'])
 	def delete_questions(questions_id):
-		try:
-			del_questions = Question.query.filter(Questions.id == questions_id).one_or_none()
-			del_questions.delete()
-			if del_questions is None:
+		del_questions = Question.query.get(questions_id)
+		if not del_questions:
 				abort(404)
-			
-			questions = Question.query.all()
-			return jasonify({
-      			'success': True,
-				'deleted': questions_id,
-				'questions': questions
-			})
+		try:
+				del_questions.delete()
+				del_questions.commit()
 		except:
+			del_questions.rollback()
 			abort(422)
+
+		return jsonify({
+      		'success': True,
+			'deleted': questions_id
+		}), 200
 
 	'''
 	@TODO:
@@ -121,24 +118,25 @@ def create_app(test_config=None):
 			start = (page  -1 ) * 10
 			end = start + 10
 
-			req_json = request.json()
+			body = request.json()
 			
 			new_questions = Question(
-				answer = req_json['answer'],
-				category = req_json['category'],
-				difficulty = req_json['difficulty'],
-				question = req_json['question']
+				answer = body.get('answer', None),
+				category = body.get('category', None),
+				difficulty = body.get('difficulty', None),
+				question = body.get('question', None)
 			)
 			new_questions.insert()
+
 			question = Question.query.all()
 			created_questions = [question.format() for new_questions in question]
 
 
 			return jsonify({
 				'success': True,
-				'created': questions.id,
+				'created': new_questions.id,
 				'questions': created_questions[start:end],
-				'total_questions': len(created_questions)
+				'total_questions': len(question)
 				})
 
 		except:
