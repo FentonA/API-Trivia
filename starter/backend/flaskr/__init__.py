@@ -182,26 +182,24 @@ def create_app(test_config=None):
 	'''
 	@app.route('/categories/<int:categories_id>/questions', methods=['GET'])
 	def get_category_questions(categories_id):
+		if not categories_id:
+			abort(404)
 		try:
-			categories = Category.query.all()
+			category_item = Category.query.get(categories_id)
 
-			formatted_categories = [c.format() for c in categories]
+			categories = list(map(Category.format, Category.query.all()))
 
-			questions = Question.query.filter_by(category=str(categories_id)).all()
+			questions_item = Question.query.filter_by(category=categories_id).all()
 
-			formatted_questions = [q.format() for q in questions]
-			print("LOG formatted questions", formatted_questions)
-			current_questions = paginate_questions(request, questions)
+			questions = list(map(Question.format, questions_item))
 
-			curr_categs = list(set([q['category'] for q in current_questions]))
-			current_category = curr_categs
 
 			return jsonify({
 				'success': True,
-				'questions': current_questions,
-				'total_questions': len(questions),
-				'current_category': current_category,
-				'categories': formatted_categories
+				'questions': questions,
+				'total_questions': len(questions_item),
+				'current_category': Category.format(category_item),
+				'categories': categories
 				})
 		except:
 			abort(422)
