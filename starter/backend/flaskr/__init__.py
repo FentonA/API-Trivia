@@ -1,10 +1,10 @@
 import os
-from flask import Flask, request, abort, jsonify
+from flask import Flask, request, abort, jsonify, json
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 
-from models import setup_db, Question, Category
+from models import setup_db, Question, Category, db
 
 QUESTIONS_PER_PAGE = 10
 
@@ -18,19 +18,18 @@ def create_app(test_config=None):
 	'''
 	@TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
 	'''
-	
+
 	'''
 	@TODO: Use the after_request decorator to set Access-Control-Allow
 	'''
 	@app.after_request
 	def after_request(response):
 		response.headers.add('Access-Control-Allow-Headers',
-                         'Contnet-Type, Authorization')
+                         'Content-Type, Authorization')
 		response.headers.add('Access-Control-Allow-Methods',
                          'GET, POST, PATCH, DELETE, OPTIONS')
-		response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
+		response.headers.add('Access-Control-Allow-Origin', '*')
 		return response
-
 
 	'''
 	@TODO:
@@ -44,7 +43,7 @@ def create_app(test_config=None):
 			all_categories[category.id] = category.type
 		return jsonify({
       		'success': True,
-			'categories' : all_categories
+			'categories': all_categories
 			})
 	'''
 	@TODO:
@@ -59,9 +58,9 @@ def create_app(test_config=None):
 	'''
 	@app.route('/questions/')
 	def retreive_questions():
-		#pagination
+		# pagination
 		page = request.args.get('page', 1, type=int)
-		start = (page -1) * 10
+		start = (page - 1) * 10
 		end = start + 10
 
 		questions = Question.query.all()
@@ -113,24 +112,23 @@ def create_app(test_config=None):
 	@app.route('/questions', methods=['POST'])
 	def update_questions_list():
 		try:
-			#paginate
+			# paginate
 			page = request.args.get('page', 1, type=int)
-			start = (page  -1 ) * 10
+			start = (page - 1) * 10
 			end = start + 10
 
 			body = request.json()
-			
+
 			new_questions = Question(
-				answer = body.get('answer', None),
-				category = body.get('category', None),
-				difficulty = body.get('difficulty', None),
-				question = body.get('question', None)
+				answer=body.get('answer', None),
+				category=body.get('category', None),
+				difficulty=body.get('difficulty', None),
+				question=body.get('question', None)
 			)
 			new_questions.insert()
 
 			question = Question.query.all()
 			created_questions = [question.format() for new_questions in question]
-
 
 			return jsonify({
 				'success': True,
@@ -151,15 +149,16 @@ def create_app(test_config=None):
 	only question that include that string within their question.
 	Try using the word "title" to start.
 	'''
-	@app.route('/questions/search', methods=['POST', 'GET'])
+	@app.route('/search', methods=['POST', 'GET'])
 	def search_questions():
 		try:
-			#paginate
+			# paginate
 			page = request.args.get('page', 1, type=int)
-			start = (page  -1 ) * 10
+			start = (page - 1) * 10
 			end = start + 10
 
-			searched_question = Question.query.filter(Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
+			searched_question = Question.query.filter(
+			    Question.question.ilike('%{}%'.format(data['searchTerm']))).all()
 			formatted_questions = [question.format() for question in searched_question]
 
 			return jsonify({
@@ -167,8 +166,6 @@ def create_app(test_config=None):
 				'question': formattd_questions[start:end],
 				'total_questions': len(formatted_questions)
 			})
-
-
 
 		except:
 			abort(404)
@@ -193,7 +190,6 @@ def create_app(test_config=None):
 
 			questions = list(map(Question.format, questions_item))
 
-
 			return jsonify({
 				'success': True,
 				'questions': questions,
@@ -214,43 +210,46 @@ def create_app(test_config=None):
 	one question at a time is displayed, the user is allowed to answer
 	and shown whether they were correct or not.
 	'''
-
+	#to be continued
 	@app.route('/quiz', methods=['POST'])
-	def play_quiz():
-		'''
-		Returns a single question from the database
-		Filters the questions already sent to the client
-		'''
+	def start_quiz():
 		try:
 			data = request.get_json()
-			# check given category
-			category_id = int(data["quiz_category"]["id"])
+			category_id = int(data['quiz_category']['id'])
 			category = Category.query.get(category_id)
-			previous_questions = data["previous_questions"]
-			if not category == None:  
-				if "previous_questions" in data and len(previous_questions) > 0:
-					questions = Question.query.filter(
-					Question.id.notin_(previous_questions),
-					Question.category == category.id
-					).all()  
+			previous_questions = data[previous_questions]
+			if not category == None:
+				if previous_questions in data and len(previous_questions) > 0:
+					questions = Question.query.filter(Question.id.notin_(
+                        previous_questions), Question.category == category.id).all()
 				else:
-					questions = Question.query.filter(Question.category == category.id).all()
+					questions = Question.query.filter(
+                        Question.category == category.id).all()
 			else:
-				if "previous_questions" in data and len(previous_questions) > 0:
-					questions = Question.query.filter(Question.id.notin_(previous_questions)).all()  
+				if previous_questions in data and len(previous_questions) > 0:
+					questions = Question.query.filter(
+                        Question.id.notin_(previous_questions)).all()
 				else:
 					questions = Question.query.all()
-					max = len(questions) - 1
+			max = len(questions) - 1
 			if max > 0:
 				question = questions[random.randint(0, max)].format()
 			else:
 				question = False
 			return jsonify({
-				"success": True,
-				"question": question
-			})
+                "success": True,
+                "question": question
+            })
 		except:
 			abort(500, "An error occured while trying to load the next question")
+
+	@app.errorhandler(422)
+	def unproccessable(error):
+		return jsonify({
+            "success": False,
+            "error": 422,
+            "message": "Unprocessable"
+        }), 422
 
 
 	'''
