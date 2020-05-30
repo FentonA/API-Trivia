@@ -211,38 +211,39 @@ def create_app(test_config=None):
 	one question at a time is displayed, the user is allowed to answer
 	and shown whether they were correct or not.
 	'''
-	#to be continued
+	
 	@app.route('/quiz', methods=['POST'])
-	def start_quiz():
-		try:
-			data = request.get_json()
-			category_id = int(data['quiz_category']['id'])
-			category = Category.query.get(category_id)
-			previous_questions = data[previous_questions]
-			if not category == None:
-				if previous_questions in data and len(previous_questions) > 0:
-					questions = Question.query.filter(Question.id.notin_(
-                        previous_questions), Question.category == category.id).all()
+	def get_question_for_quiz():
+		if request.data:
+			search_data = request.get_data('search_term')
+			if ((b'quiz_category' in search_data
+                and 'id' in search_data['quiz_category'])
+                    and b'previous_questions' in search_data):
+				questions_query = Question.query \
+                    .filter_by(category=search_data['quiz_category']['id']) \
+                    .filter(Question
+                            .id.notin_(search_data["previous_questions"]))\
+                    .all()
+				length_of_available_question = len(questions_query)
+				if length_of_available_question > 0:
+					result = {
+                        "success": True,
+                        "question": Question.format(
+                            questions_query[random.randrange(
+                                0,
+                                length_of_available_question
+                            )]
+                        )
+                    }
 				else:
-					questions = Question.query.filter(
-                        Question.category == category.id).all()
-			else:
-				if previous_questions in data and len(previous_questions) > 0:
-					questions = Question.query.filter(
-                        Question.id.notin_(previous_questions)).all()
-				else:
-					questions = Question.query.all()
-			max = len(questions) - 1
-			if max > 0:
-				question = questions[random.randint(0, max)].format()
-			else:
-				question = False
-			return jsonify({
-                "success": True,
-                "question": question
-            })
-		except:
-			abort(500, "An error occured while trying to load the next question")
+					result = {
+                        "success": True,
+                        "question": None
+                    }
+				return jsonify(result)
+			abort(404)
+		abort(422)
+
 
 	@app.errorhandler(422)
 	def unproccessable(error):
