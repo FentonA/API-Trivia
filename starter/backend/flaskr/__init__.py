@@ -8,6 +8,15 @@ from models import setup_db, Question, Category, db
 
 QUESTIONS_PER_PAGE = 10
 
+def paginate_questions(request, selection):
+	page = request.args.get('page', 1, type=int)
+	start = (page - 1) * QUESTIONS_PER_PAGE
+	end = start + QUESTIONS_PER_PAGE
+
+	questions = [question.format() for question in selection]
+	current_questions = questions[start:end]
+
+	return current_questions
 
 def create_app(test_config=None):
 	# create and configure the app
@@ -59,19 +68,16 @@ def create_app(test_config=None):
 	@app.route('/questions/')
 	def retreive_questions():
 		# pagination
-		page = request.args.get('page', 1, type=int)
-		start = (page - 1) * 10
-		end = start + 10
+		selection = Question.query.order_by(Question.id).all()
+		current_questions = paginate_questions(request, selection)
 
-		questions = Question.query.all()
-		current_questions = [question.format() for question in questions]
 		categories = {}
 		for category in Category.query.all():
 			categories[category.id] = category.type
 
 		return jsonify({
     		'success': True,
-			'questions': current_questions[start:end],
+			'questions': current_questions,
 			'categories': categories,
 			'total_questions': len(current_questions)
 			})
@@ -112,12 +118,7 @@ def create_app(test_config=None):
 	@app.route('/questions', methods=['POST'])
 	def update_questions_list():
 		try:
-			# paginate
-			page = request.args.get('page', 1, type=int)
-			start = (page - 1) * 10
-			end = start + 10
-
-			body = request.json()
+			body = request.get_json()
 
 			new_questions = Question(
 				answer=body.get('answer', None),
@@ -128,12 +129,12 @@ def create_app(test_config=None):
 			new_questions.insert()
 
 			question = Question.query.all()
-			created_questions = [question.format() for new_questions in question]
+			current_questions = paginate_questions(request, question)
 
 			return jsonify({
 				'success': True,
 				'created': new_questions.id,
-				'questions': created_questions[start:end],
+				'questions': current_questions,
 				'total_questions': len(question)
 				})
 
