@@ -169,7 +169,7 @@ class TriviaTestCase(unittest.TestCase):
             }
         }
 
-        res = self.client().pos('/quiz', json = quiz_data)
+        res = self.client().post('/quiz', json = quiz_data)
         data = json.loads(res.data)
         self.assertEqual(res.status_code, 404)
         self.assertFalse(data['success'])
